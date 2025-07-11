@@ -1,0 +1,268 @@
+{% extends 'base_home.html' %}
+
+{% block title %}{{ article.title }} - College News Portal{% endblock %}
+
+{% block content %}
+<div class="article-detail">
+    <div class="article-header">
+        <div class="article-category">{{ article.category.name }}</div>
+        <h1>{{ article.title }}</h1>
+        <div class="article-meta">
+            <span>By {{ article.author.username }}</span>
+            <span>{{ article.published_at|date:"M d, Y" }}</span>
+            <span>👁️ {{ article.views }} views</span>
+            <span>💬 {{ comments.count }} comments</span>
+        </div>
+    </div>
+
+    {% if article.featured_image %}
+    <div class="article-image">
+        <img src="{{ article.featured_image.url }}" alt="{{ article.title }}">
+    </div>
+    {% endif %}
+
+    <div class="article-content">
+        {% if article.summary %}
+        <div class="article-summary">
+            <p><strong>{{ article.summary }}</strong></p>
+        </div>
+        {% endif %}
+        
+        <div class="article-body">
+            {{ article.content|linebreaks }}
+        </div>
+    </div>
+
+    <div class="article-actions">
+        <a href="{% url 'article_list' %}" class="btn btn-outline">← Back to Articles</a>
+        {% if user.is_authenticated and user == article.author %}
+        <a href="{% url 'edit_article' article.id %}" class="btn btn-primary">Edit Article</a>
+        {% endif %}
+    </div>
+
+    <div class="comments-section">
+        <h3>Comments ({{ comments.count }})</h3>
+        
+        {% if user.is_authenticated %}
+        <div class="comment-form">
+            <h4>Add a Comment</h4>
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-group">
+                    <textarea name="comment_content" placeholder="Write your comment here..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Post Comment</button>
+            </form>
+        </div>
+        {% else %}
+        <div class="login-prompt">
+            <p>Please <a href="{% url 'login' %}">login</a> to leave a comment.</p>
+        </div>
+        {% endif %}
+
+        <div class="comments-list">
+            {% if comments %}
+                {% for comment in comments %}
+                <div class="comment">
+                    <div class="comment-header">
+                        <strong>{{ comment.author.username }}</strong>
+                        <span class="comment-date">{{ comment.created_at|date:"M d, Y H:i" }}</span>
+                    </div>
+                    <div class="comment-content">
+                        {{ comment.content|linebreaks }}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-comments">
+                    <p>No comments yet. Be the first to comment!</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .article-detail {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .article-header {
+        margin-bottom: 2rem;
+    }
+    
+    .article-category {
+        display: inline-block;
+        background: #007bff;
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        margin-bottom: 1rem;
+    }
+    
+    .article-header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        color: #333;
+        line-height: 1.2;
+    }
+    
+    .article-meta {
+        display: flex;
+        gap: 1rem;
+        color: #666;
+        font-size: 0.9rem;
+        flex-wrap: wrap;
+    }
+    
+    .article-image {
+        margin-bottom: 2rem;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .article-image img {
+        width: 100%;
+        height: auto;
+        max-height: 400px;
+        object-fit: cover;
+    }
+    
+    .article-content {
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+    
+    .article-summary {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-left: 4px solid #007bff;
+        margin-bottom: 2rem;
+        border-radius: 0 5px 5px 0;
+    }
+    
+    .article-summary p {
+        margin: 0;
+        color: #555;
+        font-style: italic;
+    }
+    
+    .article-body {
+        line-height: 1.8;
+        color: #333;
+    }
+    
+    .article-body p {
+        margin-bottom: 1rem;
+    }
+    
+    .article-actions {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+    
+    .comments-section {
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .comments-section h3 {
+        margin-bottom: 1.5rem;
+        color: #333;
+    }
+    
+    .comment-form {
+        margin-bottom: 2rem;
+        padding-bottom: 2rem;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .comment-form h4 {
+        margin-bottom: 1rem;
+        color: #333;
+    }
+    
+    .comment-form textarea {
+        width: 100%;
+        min-height: 100px;
+        padding: 1rem;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        resize: vertical;
+        font-family: inherit;
+    }
+    
+    .login-prompt {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 5px;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+    
+    .login-prompt a {
+        color: #007bff;
+        text-decoration: none;
+    }
+    
+    .comments-list {
+        margin-top: 1rem;
+    }
+    
+    .comment {
+        padding: 1rem 0;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .comment:last-child {
+        border-bottom: none;
+    }
+    
+    .comment-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+    
+    .comment-date {
+        color: #666;
+        font-size: 0.8rem;
+    }
+    
+    .comment-content {
+        color: #333;
+        line-height: 1.6;
+    }
+    
+    .no-comments {
+        text-align: center;
+        padding: 2rem;
+        color: #666;
+    }
+    
+    @media (max-width: 768px) {
+        .article-header h1 {
+            font-size: 2rem;
+        }
+        
+        .article-meta {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .article-actions {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %} 

@@ -1,0 +1,55 @@
+{% extends 'base_home.html' %}
+
+{% block title %}Home - College News Portal{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <h1>Welcome to College News Portal</h1>
+    <p>Stay updated with the latest news, events, and announcements from our college community.</p>
+    {% if not user.is_authenticated %}
+    <div class="cta-buttons">
+        <a href="{% url 'login' %}" class="btn btn-primary">Login</a>
+        <a href="{% url 'article_list' %}" class="btn btn-secondary">Browse Articles</a>
+    </div>
+    {% endif %}
+</div>
+
+{% if featured_articles %}
+<div class="featured-articles">
+    <h2>Featured Articles</h2>
+    <div class="articles-grid">
+        {% for article in featured_articles %}
+        <div class="article-card">
+            {% if article.featured_image %}
+            <img src="{{ article.featured_image.url }}" alt="{{ article.title }}">
+            {% endif %}
+            <div class="article-content">
+                <h3><a href="{% url 'article_detail' article.id %}">{{ article.title }}</a></h3>
+                <p class="article-meta">
+                    By {{ article.author.username }} | {{ article.category.name }} | {{ article.published_at|date:"M d, Y" }}
+                </p>
+                <p class="article-summary">{{ article.summary|default:article.content|truncatewords:20 }}</p>
+                <div class="article-stats">
+                    <span>👁️ {{ article.views }} views</span>
+                    <span>💬 {{ article.comments.count }} comments</span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div class="categories-section">
+    <h2>Browse by Category</h2>
+    <div class="categories-grid">
+        {% for category in categories %}
+        <div class="category-card">
+            <h3>{{ category.name }}</h3>
+            <p>{{ category.description|default:"Explore articles in this category" }}</p>
+            <a href="{% url 'article_list' %}?category={{ category.id }}" class="btn btn-outline">Browse {{ category.name }}</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
