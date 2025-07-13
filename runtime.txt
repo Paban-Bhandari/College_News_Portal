@@ -1,1 +1,1 @@
-python-3.11.7 
+gipython-3.11.7 
