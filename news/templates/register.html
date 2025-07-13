@@ -1,0 +1,315 @@
+{% extends 'base_home.html' %}
+
+{% block title %}Register - College News Portal{% endblock %}
+
+{% block content %}
+<div class="register-container">
+    <div class="register-form">
+        <h2>Create Your Account</h2>
+        <p>Join our community to comment on articles and stay updated with the latest news.</p>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="message {{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="{{ form.first_name.id_for_label }}">First Name</label>
+                {{ form.first_name }}
+                {% if form.first_name.errors %}
+                    <div class="error-message">{{ form.first_name.errors.0 }}</div>
+                {% endif %}
+            </div>
+            <div class="form-group">
+                <label for="{{ form.last_name.id_for_label }}">Last Name</label>
+                {{ form.last_name }}
+                {% if form.last_name.errors %}
+                    <div class="error-message">{{ form.last_name.errors.0 }}</div>
+                {% endif %}
+            </div>
+            <div class="form-group">
+                <label for="{{ form.email.id_for_label }}">Email Address</label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                    <div class="error-message">{{ form.email.errors.0 }}</div>
+                {% endif %}
+            </div>
+            <div class="form-group">
+                <label for="{{ form.username.id_for_label }}">Username</label>
+                {{ form.username }}
+                {% if form.username.errors %}
+                    <div class="error-message">{{ form.username.errors.0 }}</div>
+                {% endif %}
+            </div>
+            <div class="form-group">
+                <label for="{{ form.password1.id_for_label }}">Password</label>
+                <div class="password-input-container">
+                    {{ form.password1 }}
+                    <button type="button" class="password-toggle" onclick="togglePassword('{{ form.password1.id_for_label }}')">
+                        <span class="eye-icon">👁️</span>
+                    </button>
+                </div>
+                {% if form.password1.errors %}
+                    <div class="error-message">{{ form.password1.errors.0 }}</div>
+                {% endif %}
+                <div class="password-help">
+                    <small>Your password must contain at least 8 characters and can't be too common.</small>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="{{ form.password2.id_for_label }}">Confirm Password</label>
+                <div class="password-input-container">
+                    {{ form.password2 }}
+                    <button type="button" class="password-toggle" onclick="togglePassword('{{ form.password2.id_for_label }}')">
+                        <span class="eye-icon">👁️</span>
+                    </button>
+                </div>
+                {% if form.password2.errors %}
+                    <div class="error-message">{{ form.password2.errors.0 }}</div>
+                {% endif %}
+            </div>
+            <button type="submit" class="btn btn-primary">Create Account</button>
+        </form>
+        
+        <div class="register-footer">
+            <p>Already have an account? <a href="{% url 'login' %}">Sign in here</a></p>
+            <a href="{% url 'home' %}" class="btn btn-outline">Back to Home</a>
+        </div>
+        
+        <div class="account-info">
+            <h4>What you can do with a free account:</h4>
+            <ul>
+                <li>✅ Comment on articles</li>
+                <li>✅ Like articles</li>
+                <li>✅ Access your personal dashboard</li>
+                <li>✅ Stay updated with the latest news</li>
+            </ul>
+            <div class="note">
+                <strong>Note:</strong> To write articles, you need admin approval.
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .register-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 70vh;
+        padding: 2rem;
+    }
+    
+    .register-form {
+        background: white;
+        padding: 3rem;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        max-width: 500px;
+        width: 100%;
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+    
+    .register-form h2 {
+        text-align: center;
+        margin-bottom: 0.5rem;
+        color: #333;
+        font-size: 2rem;
+        font-weight: 300;
+    }
+    
+    .register-form > p {
+        text-align: center;
+        color: #666;
+        margin-bottom: 2rem;
+        line-height: 1.6;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #333;
+    }
+    
+    .form-group input,
+    .form-group input[type="email"] {
+        width: 100%;
+        padding: 1rem;
+        border: 2px solid #e1e5e9;
+        border-radius: 10px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background: #f8f9fa;
+    }
+    
+    .form-group input:focus,
+    .form-group input[type="email"]:focus {
+        outline: none;
+        border-color: #667eea;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .error-message {
+        color: #dc3545;
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+    }
+    
+    .password-help {
+        margin-top: 0.5rem;
+        color: #666;
+        font-size: 0.9rem;
+    }
+    
+    .register-footer {
+        margin-top: 2rem;
+        text-align: center;
+        padding-top: 1.5rem;
+        border-top: 1px solid #eee;
+    }
+    
+    .register-footer p {
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+        color: #666;
+    }
+    
+    .register-footer a {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 500;
+    }
+    
+    .btn {
+        width: 100%;
+        padding: 1rem;
+        font-size: 1.1rem;
+        font-weight: 500;
+    }
+    
+    .account-info {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        background: #f8f9fa;
+        border-radius: 10px;
+        border-left: 4px solid #667eea;
+    }
+    
+    .account-info h4 {
+        color: #333;
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+    }
+    
+    .account-info ul {
+        margin: 0;
+        padding-left: 1.5rem;
+        color: #555;
+    }
+    
+    .account-info li {
+        margin-bottom: 0.5rem;
+        line-height: 1.4;
+    }
+    
+    .note {
+        margin-top: 1rem;
+        padding: 0.75rem;
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 5px;
+        color: #856404;
+        font-size: 0.9rem;
+    }
+    
+    .message {
+        padding: 1rem 1.5rem;
+        border-radius: 10px;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .message.success {
+        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        color: #155724;
+        border-left: 4px solid #28a745;
+    }
+    
+    .message.error {
+        background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+        color: #721c24;
+        border-left: 4px solid #dc3545;
+    }
+    
+    /* Password Toggle Styles */
+    .password-input-container {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+    
+    .password-input-container input {
+        padding-right: 50px;
+    }
+    
+    .password-toggle {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 5px;
+        border-radius: 5px;
+        transition: all 0.3s ease;
+        font-size: 1.2rem;
+    }
+    
+    .password-toggle:hover {
+        background: rgba(102, 126, 234, 0.1);
+    }
+    
+    .password-toggle:focus {
+        outline: none;
+        background: rgba(102, 126, 234, 0.2);
+    }
+    
+    .eye-icon {
+        transition: transform 0.3s ease;
+    }
+    
+    .password-toggle:hover .eye-icon {
+        transform: scale(1.1);
+    }
+</style>
+
+<script>
+function togglePassword(inputId) {
+    const input = document.getElementById(inputId);
+    const button = input.parentElement.querySelector('.password-toggle');
+    const eyeIcon = button.querySelector('.eye-icon');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        eyeIcon.textContent = '🙈';
+        eyeIcon.style.opacity = '0.7';
+    } else {
+        input.type = 'password';
+        eyeIcon.textContent = '👁️';
+        eyeIcon.style.opacity = '1';
+    }
+}
+</script>
+{% endblock %} 

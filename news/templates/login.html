@@ -16,13 +16,22 @@
             </div>
             <div class="form-group">
                 <label for="password">Password</label>
-                <input type="password" id="password" name="password" required>
+                <div class="password-input-container">
+                    <input type="password" id="password" name="password" required>
+                    <button type="button" class="password-toggle" onclick="togglePassword('password')">
+                        <span class="eye-icon">👁️</span>
+                    </button>
+                </div>
             </div>
             <button type="submit" class="btn btn-primary">Login</button>
+            
+            <div class="forgot-password-link">
+                <a href="{% url 'forgot_password' %}" style="color: #667eea; text-decoration: none; font-size: 0.9rem;">Forgot Password?</a>
+            </div>
         </form>
         
         <div class="login-footer">
-            <p>Don't have an account? Contact the administrator to create one.</p>
+            <p>Don't have an account? <a href="{% url 'register' %}" style="color: #667eea; text-decoration: none; font-weight: 500;">Register here</a> to comment on articles!</p>
             <a href="{% url 'home' %}" class="btn btn-outline">Back to Home</a>
         </div>
     </div>
@@ -109,5 +118,74 @@
         font-size: 1.1rem;
         font-weight: 500;
     }
+    
+    /* Password Toggle Styles */
+    .password-input-container {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+    
+    .password-input-container input {
+        padding-right: 50px;
+    }
+    
+    .password-toggle {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 5px;
+        border-radius: 5px;
+        transition: all 0.3s ease;
+        font-size: 1.2rem;
+    }
+    
+    .password-toggle:hover {
+        background: rgba(102, 126, 234, 0.1);
+    }
+    
+    .password-toggle:focus {
+        outline: none;
+        background: rgba(102, 126, 234, 0.2);
+    }
+    
+    .eye-icon {
+        transition: transform 0.3s ease;
+    }
+    
+    .password-toggle:hover .eye-icon {
+        transform: scale(1.1);
+    }
+    
+    .forgot-password-link {
+        text-align: center;
+        margin-top: 1rem;
+    }
+    
+    .forgot-password-link a:hover {
+        text-decoration: underline;
+    }
 </style>
+
+<script>
+function togglePassword(inputId) {
+    const input = document.getElementById(inputId);
+    const button = input.parentElement.querySelector('.password-toggle');
+    const eyeIcon = button.querySelector('.eye-icon');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        eyeIcon.textContent = '🙈';
+        eyeIcon.style.opacity = '0.7';
+    } else {
+        input.type = 'password';
+        eyeIcon.textContent = '👁️';
+        eyeIcon.style.opacity = '1';
+    }
+}
+</script>
 {% endblock %} 

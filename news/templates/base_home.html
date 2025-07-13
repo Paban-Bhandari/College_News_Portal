@@ -385,7 +385,7 @@
             <li><a href="{% url 'contact' %}">Contact</a></li>
             {% if user.is_authenticated %}
             <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
-            <li><a href="{% url 'logout' %}">Logout</a></li>
+            <li><a href="#" onclick="confirmLogout()" class="logout-link">Logout</a></li>
             {% else %}
             <li><a href="{% url 'login' %}">Login</a></li>
             {% endif %}
@@ -415,5 +415,12 @@
         <p>&copy; 2024 College News Portal. All rights reserved.</p>
         <p style="margin-top: 0.5rem; font-size: 0.9rem; opacity: 0.7;">Built with ❤️ for the college community</p>
     </footer>
+
+    <!-- Logout Confirmation Script -->
+    <script>
+        function confirmLogout() {
+            window.location.href = "{% url 'logout_confirm' %}";
+        }
+    </script>
 </body>
 </html>

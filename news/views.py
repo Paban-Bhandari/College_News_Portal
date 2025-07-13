@@ -2,10 +2,27 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse
 from django.db.models import Q
-from .models import NewsArticle, Category, UserProfile, Comment
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
+from django.contrib.auth.models import User
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.hashers import make_password
+from django.utils import timezone
+from .forms import CustomUserCreationForm
+from .models import NewsArticle, Category, UserProfile, Like, Comment
+
+def get_client_ip(request):
+    """Get the client's IP address"""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
 
 def home(request):
     """Home page view with featured articles"""
@@ -58,13 +75,24 @@ def article_detail(request, article_id):
     # Get approved comments
     comments = article.comments.filter(is_approved=True)
     
+    # Check if user has liked the article
+    user_liked = False
+    if request.user.is_authenticated:
+        user_liked = article.likes.filter(user=request.user).exists()
+    else:
+        # Check for anonymous like by IP
+        client_ip = get_client_ip(request)
+        user_liked = article.likes.filter(ip_address=client_ip, user__isnull=True).exists()
+    
     if request.method == 'POST' and request.user.is_authenticated:
         content = request.POST.get('comment_content')
+        
         if content:
             Comment.objects.create(
                 article=article,
                 author=request.user,
-                content=content
+                content=content,
+                is_approved=True  # Auto-approve comments
             )
             messages.success(request, 'Comment submitted successfully!')
             return redirect('article_detail', article_id=article.id)
@@ -72,8 +100,128 @@ def article_detail(request, article_id):
     context = {
         'article': article,
         'comments': comments,
+        'user_liked': user_liked,
     }
     return render(request, 'article_detail.html', context)
+
+@require_POST
+def toggle_like(request, article_id):
+    """Toggle like/unlike for an article"""
+    article = get_object_or_404(NewsArticle, id=article_id)
+    
+    if request.user.is_authenticated:
+        # Logged in user
+        like, created = Like.objects.get_or_create(
+            article=article,
+            user=request.user,
+            defaults={'user': request.user}
+        )
+        
+        if not created:
+            # Unlike
+            like.delete()
+            liked = False
+        else:
+            # Like
+            liked = True
+    else:
+        # Anonymous user - just use IP address
+        client_ip = get_client_ip(request)
+        
+        # Check if anonymous user already liked this article
+        existing_like = Like.objects.filter(
+            article=article,
+            ip_address=client_ip,
+            user__isnull=True
+        ).first()
+        
+        if existing_like:
+            # Unlike
+            existing_like.delete()
+            liked = False
+        else:
+            # Like
+            Like.objects.create(
+                article=article,
+                ip_address=client_ip
+            )
+            liked = True
+    
+    return JsonResponse({
+        'liked': liked,
+        'like_count': article.like_count
+    })
+
+@login_required
+@require_POST
+def add_comment(request, article_id):
+    """Add a comment to an article - login required"""
+    article = get_object_or_404(NewsArticle, id=article_id)
+    content = request.POST.get('content')
+    
+    if content:
+        comment = Comment.objects.create(
+            article=article,
+            author=request.user,
+            content=content,
+            is_approved=True  # Auto-approve comments
+        )
+        
+        # Format timestamp to match the template format with timezone
+        formatted_time = timezone.localtime(comment.created_at).strftime('%b %d, %Y %H:%M')
+        print(f"Debug: Comment created at {comment.created_at}, formatted as {formatted_time}")  # Debug log
+        
+        return JsonResponse({
+            'success': True,
+            'comment': {
+                'id': comment.id,
+                'author': comment.author.username,
+                'content': comment.content,
+                'created_at': formatted_time,
+                'is_approved': comment.is_approved
+            }
+        })
+    
+    return JsonResponse({'success': False, 'error': 'Comment content is required'})
+
+@login_required
+@require_POST
+def edit_comment(request, comment_id):
+    """Edit a comment - only comment author can edit"""
+    comment = get_object_or_404(Comment, id=comment_id)
+    
+    # Check if user is the comment author
+    if comment.author != request.user:
+        return JsonResponse({'success': False, 'error': 'You can only edit your own comments.'})
+    
+    content = request.POST.get('content')
+    if content:
+        comment.content = content
+        comment.save()
+        
+        return JsonResponse({
+            'success': True,
+            'comment': {
+                'id': comment.id,
+                'content': comment.content,
+                'updated_at': comment.created_at.strftime('%B %d, %Y %H:%M')
+            }
+        })
+    
+    return JsonResponse({'success': False, 'error': 'Comment content is required'})
+
+@login_required
+@require_POST
+def delete_comment(request, comment_id):
+    """Delete a comment - only comment author can delete"""
+    comment = get_object_or_404(Comment, id=comment_id)
+    
+    # Check if user is the comment author
+    if comment.author != request.user:
+        return JsonResponse({'success': False, 'error': 'You can only delete your own comments.'})
+    
+    comment.delete()
+    return JsonResponse({'success': True})
 
 def user_login(request):
     """Handle user login"""
@@ -91,6 +239,55 @@ def user_login(request):
     
     return render(request, 'login.html')
 
+def user_register(request):
+    """Handle user registration for commenting"""
+    if request.method == 'POST':
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            # Create a user profile for the new user
+            UserProfile.objects.create(
+                user=user,
+                is_editor=False,  # Normal users are not editors by default
+                bio=''
+            )
+            # Log the user in after registration
+            login(request, user)
+            messages.success(request, f'Account created successfully! Welcome, {user.first_name}! You can now comment on articles.')
+            return redirect('home')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = CustomUserCreationForm()
+    
+    return render(request, 'register.html', {'form': form})
+
+def logout_confirm(request):
+    """Show logout confirmation page"""
+    if not request.user.is_authenticated:
+        return redirect('home')
+    return render(request, 'logout_confirm.html')
+
+def forgot_password(request):
+    """Handle forgot password - reset to Default123"""
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        
+        try:
+            user = User.objects.get(username=username, email=email)
+            # Reset password to Default123
+            user.password = make_password('Default123')
+            user.save()
+            messages.success(request, f'Password reset successfully! Your new password is: Default123')
+            return redirect('login')
+        except User.DoesNotExist:
+            messages.error(request, 'No user found with the provided username and email combination.')
+        except Exception as e:
+            messages.error(request, 'An error occurred while resetting your password. Please try again.')
+    
+    return render(request, 'forgot_password.html')
+
 def user_logout(request):
     """Handle user logout"""
     logout(request)
@@ -105,12 +302,10 @@ def dashboard(request):
     if user_profile.is_editor:
         # Editor dashboard
         user_articles = NewsArticle.objects.filter(author=request.user).order_by('-created_at')
-        pending_comments = Comment.objects.filter(is_approved=False).order_by('-created_at')
         
         context = {
             'user_profile': user_profile,
             'user_articles': user_articles,
-            'pending_comments': pending_comments,
             'is_editor': True,
         }
     else:
@@ -129,7 +324,13 @@ def dashboard(request):
 
 @login_required
 def create_article(request):
-    """Create a new article"""
+    """Create a new article - only for approved editors"""
+    user_profile, created = UserProfile.objects.get_or_create(user=request.user)
+    
+    if not user_profile.is_editor:
+        messages.error(request, 'You need admin approval to create articles. Please contact the administrator.')
+        return redirect('dashboard')
+    
     if request.method == 'POST':
         title = request.POST.get('title')
         content = request.POST.get('content')
@@ -184,6 +385,24 @@ def edit_article(request, article_id):
 def about(request):
     """About page"""
     return render(request, 'about.html')
+
+@login_required
+def change_password(request):
+    """Change user password"""
+    if request.method == 'POST':
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            # Update the session to prevent the user from being logged out
+            update_session_auth_hash(request, user)
+            messages.success(request, 'Your password has been changed successfully!')
+            return redirect('dashboard')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = PasswordChangeForm(request.user)
+    
+    return render(request, 'change_password.html', {'form': form})
 
 def contact(request):
     """Contact page"""

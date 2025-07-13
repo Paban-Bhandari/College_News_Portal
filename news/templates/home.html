@@ -28,10 +28,18 @@
                 <p class="article-meta">
                     By {{ article.author.username }} | {{ article.category.name }} | {{ article.published_at|date:"M d, Y" }}
                 </p>
-                <p class="article-summary">{{ article.summary|default:article.content|truncatewords:20 }}</p>
+                <div class="article-summary-container">
+                    <p class="article-summary" id="summary-{{ article.id }}">
+                        {{ article.summary|default:article.content|truncatewords:15 }}
+                    </p>
+                    <a href="{% url 'article_detail' article.id %}" class="read-more-btn">
+                        📖 Read More
+                    </a>
+                </div>
                 <div class="article-stats">
                     <span>👁️ {{ article.views }} views</span>
-                    <span>💬 {{ article.comments.count }} comments</span>
+                    <span>💬 {{ article.comment_count }} comments</span>
+                    <span>❤️ {{ article.like_count }} likes</span>
                 </div>
             </div>
         </div>
@@ -46,10 +54,207 @@
         {% for category in categories %}
         <div class="category-card">
             <h3>{{ category.name }}</h3>
-            <p>{{ category.description|default:"Explore articles in this category" }}</p>
-            <a href="{% url 'article_list' %}?category={{ category.id }}" class="btn btn-outline">Browse {{ category.name }}</a>
+            <p>{{ category.description|default:"Explore articles in this category." }}</p>
+            <a href="{% url 'article_list' %}?category={{ category.id }}" class="btn btn-outline">Browse Articles</a>
         </div>
         {% endfor %}
     </div>
 </div>
+
+<style>
+    .hero-section {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        margin-bottom: 3rem;
+    }
+    
+    .hero-section h1 {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        font-weight: bold;
+    }
+    
+    .hero-section p {
+        font-size: 1.2rem;
+        margin-bottom: 2rem;
+        opacity: 0.9;
+    }
+    
+    .cta-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .featured-articles {
+        margin-bottom: 3rem;
+    }
+    
+    .featured-articles h2 {
+        text-align: center;
+        margin-bottom: 2rem;
+        color: #333;
+        font-size: 2rem;
+    }
+    
+    .articles-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+    }
+    
+    .article-card {
+        background: white;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .article-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    
+    .article-card img {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+    }
+    
+    .article-content {
+        padding: 1.5rem;
+    }
+    
+    .article-content h3 {
+        margin-bottom: 0.5rem;
+        font-size: 1.2rem;
+    }
+    
+    .article-content h3 a {
+        color: #333;
+        text-decoration: none;
+        transition: color 0.3s ease;
+    }
+    
+    .article-content h3 a:hover {
+        color: #007bff;
+    }
+    
+    .article-meta {
+        color: #666;
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+    }
+    
+    .article-summary {
+        color: #555;
+        line-height: 1.6;
+        margin-bottom: 1rem;
+    }
+    
+    .article-summary-container {
+        margin-bottom: 1rem;
+    }
+    
+    .article-full-content {
+        color: #555;
+        line-height: 1.6;
+        margin-bottom: 1rem;
+    }
+    
+    .read-more-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        color: white;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 500;
+        padding: 0.75rem 1.5rem;
+        border-radius: 25px;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        margin-top: 0.5rem;
+        display: inline-block;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    .read-more-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        color: white;
+        text-decoration: none;
+    }
+    
+    .categories-section {
+        margin-top: 3rem;
+    }
+    
+    .categories-section h2 {
+        text-align: center;
+        margin-bottom: 2rem;
+        color: #333;
+        font-size: 2rem;
+    }
+    
+    .categories-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+    }
+    
+    .category-card {
+        background: white;
+        padding: 2rem;
+        border-radius: 15px;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+    }
+    
+    .category-card:hover {
+        transform: translateY(-3px);
+    }
+    
+    .category-card h3 {
+        color: #333;
+        margin-bottom: 1rem;
+        font-size: 1.3rem;
+    }
+    
+    .category-card p {
+        color: #666;
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+    }
+    
+    @media (max-width: 768px) {
+        .hero-section h1 {
+            font-size: 2rem;
+        }
+        
+        .hero-section p {
+            font-size: 1rem;
+        }
+        
+        .cta-buttons {
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .articles-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .categories-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+
 {% endblock %}

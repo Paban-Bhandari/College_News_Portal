@@ -11,7 +11,7 @@
             <span>By {{ article.author.username }}</span>
             <span>{{ article.published_at|date:"M d, Y" }}</span>
             <span>👁️ {{ article.views }} views</span>
-            <span>💬 {{ comments.count }} comments</span>
+            <span>💬 {{ article.comment_count }} comments</span>
         </div>
     </div>
 
@@ -34,42 +34,85 @@
     </div>
 
     <div class="article-actions">
-        <a href="{% url 'article_list' %}" class="btn btn-outline">← Back to Articles</a>
-        {% if user.is_authenticated and user == article.author %}
-        <a href="{% url 'edit_article' article.id %}" class="btn btn-primary">Edit Article</a>
-        {% endif %}
+        <div class="like-section">
+            <button class="like-btn {% if user_liked %}liked{% endif %}" onclick="toggleLike({{ article.id }})">
+                <svg class="like-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span class="like-text">{% if user_liked %}Liked{% else %}Like{% endif %}</span>
+                <span class="like-count">{{ article.like_count }}</span>
+            </button>
+        </div>
+        
+        <div class="action-buttons">
+            <a href="{% url 'article_list' %}" class="btn btn-outline">← Back to Articles</a>
+            {% if user.is_authenticated and user == article.author %}
+            <a href="{% url 'edit_article' article.id %}" class="btn btn-primary">Edit Article</a>
+            {% endif %}
+        </div>
     </div>
 
     <div class="comments-section">
-        <h3>Comments ({{ comments.count }})</h3>
+        <h3>Comments ({{ article.comment_count }})</h3>
         
         {% if user.is_authenticated %}
         <div class="comment-form">
             <h4>Add a Comment</h4>
-            <form method="post">
+            <form id="commentForm" onsubmit="submitComment(event, {{ article.id }})">
                 {% csrf_token %}
                 <div class="form-group">
-                    <textarea name="comment_content" placeholder="Write your comment here..." required></textarea>
+                    <textarea name="content" id="commentContent" placeholder="Write your comment here..." required></textarea>
                 </div>
-                <button type="submit" class="btn btn-primary">Post Comment</button>
+                <button type="submit" class="btn btn-primary">
+                    <span class="btn-text">Post Comment</span>
+                    <span class="btn-loading" style="display: none;">Posting...</span>
+                </button>
             </form>
         </div>
         {% else %}
         <div class="login-prompt">
-            <p>Please <a href="{% url 'login' %}">login</a> to leave a comment.</p>
+            <p>Please <a href="{% url 'login' %}">login</a> or <a href="{% url 'register' %}">register</a> to leave a comment.</p>
         </div>
         {% endif %}
 
-        <div class="comments-list">
+        <div class="comments-list" id="commentsList">
             {% if comments %}
                 {% for comment in comments %}
-                <div class="comment">
+                <div class="comment" data-comment-id="{{ comment.id }}">
                     <div class="comment-header">
-                        <strong>{{ comment.author.username }}</strong>
-                        <span class="comment-date">{{ comment.created_at|date:"M d, Y H:i" }}</span>
+                        <div class="comment-author-info">
+                            <strong>{{ comment.display_name }}</strong>
+                            <span class="comment-date">{{ comment.created_at|date:"M d, Y H:i" }}</span>
+                        </div>
+                        {% if user.is_authenticated and comment.author == user %}
+                        <div class="comment-actions">
+                            <button class="edit-comment-btn" data-comment-id="{{ comment.id }}" data-comment-content="{{ comment.content|escapejs }}" onclick="editComment({{ comment.id }})">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                Edit
+                            </button>
+                            <button class="delete-comment-btn" onclick="deleteComment({{ comment.id }})">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M3 6h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                Delete
+                            </button>
+                        </div>
+                        {% endif %}
                     </div>
-                    <div class="comment-content">
+                    <div class="comment-content" id="comment-content-{{ comment.id }}">
                         {{ comment.content|linebreaks }}
+                    </div>
+                    <div class="comment-edit-form" id="comment-edit-form-{{ comment.id }}" style="display: none;">
+                        <textarea class="edit-comment-textarea" id="edit-textarea-{{ comment.id }}">{{ comment.content }}</textarea>
+                        <div class="edit-actions">
+                            <button class="save-edit-btn" onclick="saveCommentEdit({{ comment.id }})">Save</button>
+                            <button class="cancel-edit-btn" onclick="cancelCommentEdit({{ comment.id }})">Cancel</button>
+                        </div>
                     </div>
                 </div>
                 {% endfor %}
@@ -163,8 +206,59 @@
     
     .article-actions {
         display: flex;
-        gap: 1rem;
+        justify-content: space-between;
+        align-items: center;
         margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .like-section {
+        display: flex;
+        align-items: center;
+    }
+    
+    .like-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        border: 2px solid #e9ecef;
+        border-radius: 25px;
+        background: white;
+        color: #666;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 500;
+    }
+    
+    .like-btn:hover {
+        border-color: #ff6b6b;
+        color: #ff6b6b;
+        transform: translateY(-2px);
+    }
+    
+    .like-btn.liked {
+        border-color: #ff6b6b;
+        color: #ff6b6b;
+        background: #fff5f5;
+    }
+    
+    .like-icon {
+        transition: transform 0.3s ease;
+    }
+    
+    .like-btn:hover .like-icon {
+        transform: scale(1.1);
+    }
+    
+    .like-btn.liked .like-icon {
+        fill: #ff6b6b;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
         flex-wrap: wrap;
     }
     
@@ -199,6 +293,13 @@
         border-radius: 5px;
         resize: vertical;
         font-family: inherit;
+        transition: border-color 0.3s ease;
+    }
+    
+    .comment-form textarea:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
     }
     
     .login-prompt {
@@ -221,6 +322,18 @@
     .comment {
         padding: 1rem 0;
         border-bottom: 1px solid #eee;
+        animation: fadeInUp 0.5s ease-out;
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
     
     .comment:last-child {
@@ -234,9 +347,110 @@
         margin-bottom: 0.5rem;
     }
     
+    .comment-author-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
     .comment-date {
         color: #666;
         font-size: 0.8rem;
+    }
+    
+    .comment-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .edit-comment-btn,
+    .delete-comment-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        border: none;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: transparent;
+    }
+    
+    .edit-comment-btn {
+        color: #007bff;
+    }
+    
+    .edit-comment-btn:hover {
+        background: rgba(0, 123, 255, 0.1);
+        color: #0056b3;
+    }
+    
+    .delete-comment-btn {
+        color: #dc3545;
+    }
+    
+    .delete-comment-btn:hover {
+        background: rgba(220, 53, 69, 0.1);
+        color: #c82333;
+    }
+    
+    .comment-edit-form {
+        margin-top: 1rem;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 5px;
+        border: 1px solid #e9ecef;
+    }
+    
+    .edit-comment-textarea {
+        width: 100%;
+        min-height: 80px;
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        resize: vertical;
+        font-family: inherit;
+        margin-bottom: 1rem;
+    }
+    
+    .edit-comment-textarea:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+    }
+    
+    .edit-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .save-edit-btn,
+    .cancel-edit-btn {
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .save-edit-btn {
+        background: #28a745;
+        color: white;
+    }
+    
+    .save-edit-btn:hover {
+        background: #218838;
+    }
+    
+    .cancel-edit-btn {
+        background: #6c757d;
+        color: white;
+    }
+    
+    .cancel-edit-btn:hover {
+        background: #5a6268;
     }
     
     .comment-content {
@@ -262,7 +476,551 @@
         
         .article-actions {
             flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .like-btn {
+            justify-content: center;
+        }
+        
+        .action-buttons {
+            justify-content: center;
+        }
+    }
+    
+    /* Success Notification Styles */
+    .success-notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+    }
+    
+    .success-notification.show {
+        transform: translateX(0);
+    }
+    
+    .notification-content {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        min-width: 300px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+    }
+    
+    .notification-icon {
+        font-size: 1.2rem;
+        animation: bounce 0.6s ease;
+    }
+    
+    .notification-text {
+        font-weight: 500;
+        font-size: 0.95rem;
+    }
+    
+    @keyframes bounce {
+        0%, 20%, 50%, 80%, 100% {
+            transform: translateY(0);
+        }
+        40% {
+            transform: translateY(-5px);
+        }
+        60% {
+            transform: translateY(-3px);
+        }
+    }
+    
+    /* Mobile responsive */
+    @media (max-width: 768px) {
+        .success-notification {
+            top: 10px;
+            right: 10px;
+            left: 10px;
+            transform: translateY(-100%);
+        }
+        
+        .success-notification.show {
+            transform: translateY(0);
+        }
+        
+        .notification-content {
+            min-width: auto;
+            width: 100%;
+        }
+    }
+    
+    /* Delete Modal Styles */
+    .delete-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(5px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .delete-modal.show {
+        opacity: 1;
+    }
+    
+    .delete-modal-content {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        transform: scale(0.9) translateY(20px);
+        transition: all 0.3s ease;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .delete-modal.show .delete-modal-content {
+        transform: scale(1) translateY(0);
+    }
+    
+    .delete-modal-header {
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .delete-modal-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        animation: shake 0.5s ease;
+    }
+    
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+    }
+    
+    .delete-modal-header h3 {
+        color: #333;
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin: 0;
+    }
+    
+    .delete-modal-body {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .delete-modal-body p {
+        color: #666;
+        margin-bottom: 0.5rem;
+        font-size: 1rem;
+        line-height: 1.5;
+    }
+    
+    .delete-warning {
+        color: #dc3545 !important;
+        font-weight: 500;
+        font-size: 0.9rem !important;
+    }
+    
+    .delete-modal-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+    }
+    
+    .cancel-delete-btn,
+    .confirm-delete-btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        min-width: 120px;
+    }
+    
+    .cancel-delete-btn {
+        background: #6c757d;
+        color: white;
+    }
+    
+    .cancel-delete-btn:hover {
+        background: #5a6268;
+        transform: translateY(-1px);
+    }
+    
+    .confirm-delete-btn {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        color: white;
+        box-shadow: 0 4px 15px rgba(220, 53, 69, 0.4);
+    }
+    
+    .confirm-delete-btn:hover {
+        background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(220, 53, 69, 0.6);
+    }
+    
+    @media (max-width: 768px) {
+        .delete-modal-content {
+            padding: 1.5rem;
+            margin: 1rem;
+        }
+        
+        .delete-modal-actions {
+            flex-direction: column;
+        }
+        
+        .cancel-delete-btn,
+        .confirm-delete-btn {
+            width: 100%;
         }
     }
 </style>
+
+<!-- Success Notification -->
+<div id="successNotification" class="success-notification" style="display: none;">
+    <div class="notification-content">
+        <div class="notification-icon">✅</div>
+        <div class="notification-text"></div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="delete-modal" style="display: none;">
+    <div class="delete-modal-content">
+        <div class="delete-modal-header">
+            <div class="delete-modal-icon">🗑️</div>
+            <h3>Delete Comment</h3>
+        </div>
+        <div class="delete-modal-body">
+            <p>Are you sure you want to delete this comment?</p>
+            <p class="delete-warning">This action cannot be undone.</p>
+        </div>
+        <div class="delete-modal-actions">
+            <button class="cancel-delete-btn" onclick="hideDeleteConfirmation()">Cancel</button>
+            <button class="confirm-delete-btn" onclick="confirmDelete()">Delete Comment</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function showSuccessMessage(message) {
+    const notification = document.getElementById('successNotification');
+    const notificationText = notification.querySelector('.notification-text');
+    
+    notificationText.textContent = message;
+    notification.style.display = 'flex';
+    
+    // Add animation class
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 10);
+    
+    // Hide after 3 seconds
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => {
+            notification.style.display = 'none';
+        }, 300);
+    }, 3000);
+}
+
+function toggleLike(articleId) {
+    fetch(`/article/${articleId}/like/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Like response:', data); // Debug log
+        
+        const likeBtn = document.querySelector('.like-btn');
+        const likeText = likeBtn.querySelector('.like-text');
+        const likeCount = likeBtn.querySelector('.like-count');
+        
+        if (data.liked) {
+            likeBtn.classList.add('liked');
+            likeText.textContent = 'Liked';
+        } else {
+            likeBtn.classList.remove('liked');
+            likeText.textContent = 'Like';
+        }
+        
+        likeCount.textContent = data.like_count;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error toggling like. Please try again.');
+    });
+}
+
+function submitComment(event, articleId) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const content = document.getElementById('commentContent').value;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const btnText = submitBtn.querySelector('.btn-text');
+    const btnLoading = submitBtn.querySelector('.btn-loading');
+    
+    if (!content.trim()) {
+        alert('Please enter a comment.');
+        return;
+    }
+    
+    // Show loading state
+    btnText.style.display = 'none';
+    btnLoading.style.display = 'inline';
+    submitBtn.disabled = true;
+    
+    const formData = new FormData();
+    formData.append('content', content);
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    
+    fetch(`/article/${articleId}/comment/`, {
+        method: 'POST',
+        body: formData,
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Add new comment to the list
+            const commentsList = document.getElementById('commentsList');
+            const noComments = commentsList.querySelector('.no-comments');
+            
+            if (noComments) {
+                noComments.remove();
+            }
+            
+            console.log('Comment data received:', data.comment); // Debug log
+            
+            const newComment = document.createElement('div');
+            newComment.className = 'comment';
+            newComment.setAttribute('data-comment-id', data.comment.id);
+            newComment.innerHTML = `
+                <div class="comment-header">
+                    <div class="comment-author-info">
+                        <strong>${data.comment.author}</strong>
+                        <span class="comment-date">${data.comment.created_at}</span>
+                    </div>
+                    <div class="comment-actions">
+                        <button class="edit-comment-btn" data-comment-id="${data.comment.id}" data-comment-content="${data.comment.content.replace(/"/g, '&quot;')}" onclick="editComment(${data.comment.id})">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Edit
+                        </button>
+                        <button class="delete-comment-btn" onclick="deleteComment(${data.comment.id})">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 6h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Delete
+                        </button>
+                    </div>
+                </div>
+                <div class="comment-content" id="comment-content-${data.comment.id}">
+                    ${data.comment.content.replace(/\n/g, '<br>')}
+                </div>
+                <div class="comment-edit-form" id="comment-edit-form-${data.comment.id}" style="display: none;">
+                    <textarea class="edit-comment-textarea" id="edit-textarea-${data.comment.id}">${data.comment.content}</textarea>
+                    <div class="edit-actions">
+                        <button class="save-edit-btn" onclick="saveCommentEdit(${data.comment.id})">Save</button>
+                        <button class="cancel-edit-btn" onclick="cancelCommentEdit(${data.comment.id})">Cancel</button>
+                    </div>
+                </div>
+            `;
+            
+            commentsList.insertBefore(newComment, commentsList.firstChild);
+            
+            // Clear form
+            document.getElementById('commentContent').value = '';
+            
+            // Update comment count
+            const commentCountElement = document.querySelector('.comments-section h3');
+            const currentCount = parseInt(commentCountElement.textContent.match(/\d+/)[0]);
+            commentCountElement.textContent = `Comments (${currentCount + 1})`;
+            
+            // Show success message
+            showSuccessMessage('Comment submitted successfully!');
+        } else {
+            alert(data.error || 'Error submitting comment. Please try again.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error submitting comment. Please try again.');
+    })
+    .finally(() => {
+        // Reset button state
+        btnText.style.display = 'inline';
+        btnLoading.style.display = 'none';
+        submitBtn.disabled = false;
+    });
+}
+
+function editComment(commentId) {
+    const commentContent = document.getElementById(`comment-content-${commentId}`);
+    const editForm = document.getElementById(`comment-edit-form-${commentId}`);
+    const textarea = document.getElementById(`edit-textarea-${commentId}`);
+    
+    // Hide content and show edit form
+    commentContent.style.display = 'none';
+    editForm.style.display = 'block';
+    
+    // Focus on textarea and place cursor at the end
+    textarea.focus();
+    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+}
+
+function cancelCommentEdit(commentId) {
+    const commentContent = document.getElementById(`comment-content-${commentId}`);
+    const editForm = document.getElementById(`comment-edit-form-${commentId}`);
+    const textarea = document.getElementById(`edit-textarea-${commentId}`);
+    const editBtn = document.querySelector(`[data-comment-id="${commentId}"]`);
+    const originalContent = editBtn.getAttribute('data-comment-content');
+    
+    // Reset textarea to original content
+    textarea.value = originalContent;
+    
+    // Hide edit form and show content
+    editForm.style.display = 'none';
+    commentContent.style.display = 'block';
+}
+
+function saveCommentEdit(commentId) {
+    const textarea = document.getElementById(`edit-textarea-${commentId}`);
+    const content = textarea.value.trim();
+    
+    if (!content) {
+        alert('Comment cannot be empty.');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('content', content);
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    
+    fetch(`/comment/${commentId}/edit/`, {
+        method: 'POST',
+        body: formData,
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update the comment content
+            const commentContent = document.getElementById(`comment-content-${commentId}`);
+            commentContent.innerHTML = content.replace(/\n/g, '<br>');
+            
+            // Hide edit form and show content
+            const editForm = document.getElementById(`comment-edit-form-${commentId}`);
+            editForm.style.display = 'none';
+            commentContent.style.display = 'block';
+            
+            // Update textarea default value
+            textarea.defaultValue = content;
+            
+            // Show success message
+            showSuccessMessage('Comment updated successfully!');
+        } else {
+            alert(data.error || 'Error updating comment. Please try again.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating comment. Please try again.');
+    });
+}
+
+let currentDeleteCommentId = null;
+
+function showDeleteConfirmation(commentId) {
+    currentDeleteCommentId = commentId;
+    const modal = document.getElementById('deleteModal');
+    modal.style.display = 'flex';
+    
+    // Add animation class after a small delay
+    setTimeout(() => {
+        modal.classList.add('show');
+    }, 10);
+}
+
+function hideDeleteConfirmation() {
+    const modal = document.getElementById('deleteModal');
+    modal.classList.remove('show');
+    
+    // Hide modal after animation
+    setTimeout(() => {
+        modal.style.display = 'none';
+        currentDeleteCommentId = null;
+    }, 300);
+}
+
+function confirmDelete() {
+    if (!currentDeleteCommentId) return;
+    
+    const commentId = currentDeleteCommentId;
+    hideDeleteConfirmation();
+    
+    const formData = new FormData();
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    
+    fetch(`/comment/${commentId}/delete/`, {
+        method: 'POST',
+        body: formData,
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Remove the comment from the DOM
+            const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`);
+            commentElement.remove();
+            
+            // Update comment count
+            const commentCountElement = document.querySelector('.comments-section h3');
+            const currentCount = parseInt(commentCountElement.textContent.match(/\d+/)[0]);
+            commentCountElement.textContent = `Comments (${currentCount - 1})`;
+            
+            // Show success message
+            showSuccessMessage('Comment deleted successfully!');
+        } else {
+            alert(data.error || 'Error deleting comment. Please try again.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error deleting comment. Please try again.');
+    });
+}
+
+function deleteComment(commentId) {
+    showDeleteConfirmation(commentId);
+}
+</script>
 {% endblock %} 
