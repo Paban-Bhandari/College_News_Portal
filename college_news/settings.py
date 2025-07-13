@@ -46,7 +46,8 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Add this line
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    # Temporarily comment out CSRF middleware for Railway deployment
+    # 'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -154,6 +155,10 @@ if not DEBUG:
     csrf_trusted_origins = os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
     if csrf_trusted_origins and csrf_trusted_origins[0]:
         CSRF_TRUSTED_ORIGINS.extend(csrf_trusted_origins)
+    
+    # Temporarily disable CSRF for Railway deployment
+    CSRF_COOKIE_SECURE = False
+    CSRF_USE_SESSIONS = True
 else:
     # Development settings
     SECURE_BROWSER_XSS_FILTER = False
