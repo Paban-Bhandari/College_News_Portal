@@ -140,9 +140,20 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
     X_FRAME_OPTIONS = 'DENY'
-    SECURE_SSL_REDIRECT = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+    # Disable SSL redirect for Railway (they handle it)
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+    # Allow CSRF from Railway domains
+    CSRF_TRUSTED_ORIGINS = [
+        'https://collegenewsportal-production.up.railway.app',
+        'http://collegenewsportal-production.up.railway.app'
+    ]
+    
+    # Add any additional CSRF trusted origins from environment
+    csrf_trusted_origins = os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
+    if csrf_trusted_origins and csrf_trusted_origins[0]:
+        CSRF_TRUSTED_ORIGINS.extend(csrf_trusted_origins)
 else:
     # Development settings
     SECURE_BROWSER_XSS_FILTER = False
