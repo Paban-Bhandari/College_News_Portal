@@ -1,1 +1,1 @@
-web: gunicorn college_news.wsgi:application --bind 0.0.0.0:$PORT 
+web: python manage.py setup_database && gunicorn college_news.wsgi:application --bind 0.0.0.0:$PORT 
