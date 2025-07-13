@@ -46,8 +46,7 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Add this line
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    # Temporarily comment out CSRF middleware for Railway deployment
-    # 'django.middleware.csrf.CsrfViewMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -148,7 +147,9 @@ if not DEBUG:
     # Allow CSRF from Railway domains
     CSRF_TRUSTED_ORIGINS = [
         'https://collegenewsportal-production.up.railway.app',
-        'http://collegenewsportal-production.up.railway.app'
+        'http://collegenewsportal-production.up.railway.app',
+        'https://*.up.railway.app',
+        'http://*.up.railway.app'
     ]
     
     # Add any additional CSRF trusted origins from environment
@@ -156,9 +157,11 @@ if not DEBUG:
     if csrf_trusted_origins and csrf_trusted_origins[0]:
         CSRF_TRUSTED_ORIGINS.extend(csrf_trusted_origins)
     
-    # Temporarily disable CSRF for Railway deployment
+    # CSRF settings for Railway deployment
     CSRF_COOKIE_SECURE = False
     CSRF_USE_SESSIONS = True
+    CSRF_COOKIE_HTTPONLY = False
+    CSRF_COOKIE_SAMESITE = 'Lax'
 else:
     # Development settings
     SECURE_BROWSER_XSS_FILTER = False
@@ -166,3 +169,8 @@ else:
     SECURE_SSL_REDIRECT = False
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
+    # Development CSRF settings
+    CSRF_TRUSTED_ORIGINS = [
+        'http://localhost:8000',
+        'http://127.0.0.1:8000'
+    ]
