@@ -1,0 +1,205 @@
+{% extends 'base_home.html' %}
+
+{% block title %}Delete Article - College News Portal{% endblock %}
+
+{% block content %}
+<div class="delete-confirmation">
+    <div class="confirmation-header">
+        <h1>Delete Article</h1>
+        <p>Are you sure you want to delete this article?</p>
+    </div>
+
+    <div class="article-preview">
+        <h2>{{ article.title }}</h2>
+        <div class="article-meta">
+            <p><strong>Category:</strong> {{ article.category.name }}</p>
+            <p><strong>Status:</strong> <span class="status-{{ article.status }}">{{ article.status|title }}</span></p>
+            <p><strong>Created:</strong> {{ article.created_at|date:"M d, Y" }}</p>
+            <p><strong>Views:</strong> {{ article.views }}</p>
+            <p><strong>Likes:</strong> {{ article.like_count }}</p>
+            <p><strong>Comments:</strong> {{ article.comment_count }}</p>
+        </div>
+        <div class="article-summary">
+            <p><strong>Summary:</strong></p>
+            <p>{{ article.summary|default:"No summary provided" }}</p>
+        </div>
+    </div>
+
+    <div class="warning-message">
+        <div class="warning-icon">⚠️</div>
+        <p><strong>Warning:</strong> This action cannot be undone. The article and all its associated data (comments, likes) will be permanently deleted.</p>
+    </div>
+
+    <div class="confirmation-actions">
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Delete Article</button>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline">Cancel</a>
+        </form>
+    </div>
+</div>
+
+<style>
+    .delete-confirmation {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+    
+    .confirmation-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding: 2rem;
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        color: white;
+        border-radius: 10px;
+    }
+    
+    .confirmation-header h1 {
+        margin-bottom: 0.5rem;
+        font-size: 2rem;
+    }
+    
+    .article-preview {
+        background: white;
+        padding: 2rem;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+    
+    .article-preview h2 {
+        color: #333;
+        margin-bottom: 1rem;
+        font-size: 1.5rem;
+    }
+    
+    .article-meta {
+        margin-bottom: 1.5rem;
+    }
+    
+    .article-meta p {
+        margin-bottom: 0.5rem;
+        color: #666;
+    }
+    
+    .article-summary {
+        border-top: 1px solid #eee;
+        padding-top: 1rem;
+    }
+    
+    .article-summary p {
+        color: #555;
+        line-height: 1.6;
+    }
+    
+    .status-published {
+        color: #28a745;
+        font-weight: bold;
+        background: #d4edda;
+        padding: 0.25rem 0.75rem;
+        border-radius: 15px;
+        font-size: 0.8rem;
+    }
+    
+    .status-draft {
+        color: #856404;
+        font-weight: bold;
+        background: #fff3cd;
+        padding: 0.25rem 0.75rem;
+        border-radius: 15px;
+        font-size: 0.8rem;
+    }
+    
+    .status-archived {
+        color: #6c757d;
+        font-weight: bold;
+        background: #e2e3e5;
+        padding: 0.25rem 0.75rem;
+        border-radius: 15px;
+        font-size: 0.8rem;
+    }
+    
+    .warning-message {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .warning-icon {
+        font-size: 2rem;
+        flex-shrink: 0;
+    }
+    
+    .warning-message p {
+        margin: 0;
+        color: #856404;
+        line-height: 1.6;
+    }
+    
+    .confirmation-actions {
+        text-align: center;
+    }
+    
+    .confirmation-actions form {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .btn-danger {
+        background: #dc3545;
+        color: white;
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 5px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-danger:hover {
+        background: #c82333;
+        transform: translateY(-2px);
+    }
+    
+    .btn-outline {
+        background: transparent;
+        color: #6c757d;
+        border: 1px solid #6c757d;
+        padding: 0.75rem 2rem;
+        border-radius: 5px;
+        font-size: 1rem;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-outline:hover {
+        background: #6c757d;
+        color: white;
+        transform: translateY(-2px);
+    }
+    
+    @media (max-width: 768px) {
+        .delete-confirmation {
+            padding: 1rem;
+        }
+        
+        .confirmation-actions form {
+            flex-direction: column;
+        }
+        
+        .warning-message {
+            flex-direction: column;
+            text-align: center;
+        }
+    }
+</style>
+{% endblock %} 

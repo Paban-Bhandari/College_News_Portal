@@ -10,7 +10,7 @@
     </div>
 
     <div class="article-form">
-        <form method="post">
+        <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
             
             <div class="form-group">
@@ -32,6 +32,18 @@
             <div class="form-group">
                 <label for="summary">Summary (Optional)</label>
                 <textarea id="summary" name="summary" placeholder="Brief summary of your article (optional)">{{ article.summary }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="featured_image">Featured Image (Optional)</label>
+                {% if article.featured_image %}
+                <div class="current-image">
+                    <p><strong>Current Image:</strong></p>
+                    <img src="{{ article.featured_image.url }}" alt="Current featured image" style="max-width: 200px; max-height: 150px; border-radius: 5px; margin: 0.5rem 0;">
+                </div>
+                {% endif %}
+                <input type="file" id="featured_image" name="featured_image" accept="image/*">
+                <small class="form-help">Upload a new image to replace the current one. Supported formats: JPG, PNG, GIF</small>
             </div>
 
             <div class="form-group">
@@ -119,6 +131,40 @@
         outline: none;
         border-color: #007bff;
         box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+    }
+    
+    .form-group input[type="file"] {
+        padding: 0.5rem;
+        border: 2px dashed #ddd;
+        background: #f8f9fa;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .form-group input[type="file"]:hover {
+        border-color: #007bff;
+        background: #f0f8ff;
+    }
+    
+    .form-help {
+        display: block;
+        margin-top: 0.25rem;
+        font-size: 0.85rem;
+        color: #666;
+        font-style: italic;
+    }
+    
+    .current-image {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 5px;
+        border: 1px solid #e9ecef;
+    }
+    
+    .current-image p {
+        margin-bottom: 0.5rem;
+        color: #333;
     }
     
     .form-actions {

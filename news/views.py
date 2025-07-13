@@ -66,11 +66,30 @@ def article_list(request):
 
 def article_detail(request, article_id):
     """Display a single article with comments"""
-    article = get_object_or_404(NewsArticle, id=article_id, status='published')
+    # Try to get the article
+    try:
+        article = NewsArticle.objects.get(id=article_id)
+        
+        # Check if user can view this article
+        can_view = False
+        
+        # Published articles can be viewed by anyone
+        if article.status == 'published':
+            can_view = True
+        # Draft/archived articles can only be viewed by the author
+        elif request.user.is_authenticated and article.author == request.user:
+            can_view = True
+        
+        if not can_view:
+            raise NewsArticle.DoesNotExist()
+            
+    except NewsArticle.DoesNotExist:
+        return get_object_or_404(NewsArticle, id=article_id, status='published')
     
-    # Increment view count
-    article.views += 1
-    article.save()
+    # Increment view count only for published articles
+    if article.status == 'published':
+        article.views += 1
+        article.save()
     
     # Get approved comments
     comments = article.comments.filter(is_approved=True)
@@ -169,7 +188,6 @@ def add_comment(request, article_id):
         
         # Format timestamp to match the template format with timezone
         formatted_time = timezone.localtime(comment.created_at).strftime('%b %d, %Y %H:%M')
-        print(f"Debug: Comment created at {comment.created_at}, formatted as {formatted_time}")  # Debug log
         
         return JsonResponse({
             'success': True,
@@ -299,20 +317,20 @@ def dashboard(request):
     """User dashboard"""
     user_profile, created = UserProfile.objects.get_or_create(user=request.user)
     
+    # Get user articles and comments for both editors and regular users
+    user_articles = NewsArticle.objects.filter(author=request.user).order_by('-created_at')
+    user_comments = Comment.objects.filter(author=request.user).order_by('-created_at')
+    
     if user_profile.is_editor:
         # Editor dashboard
-        user_articles = NewsArticle.objects.filter(author=request.user).order_by('-created_at')
-        
         context = {
             'user_profile': user_profile,
             'user_articles': user_articles,
+            'user_comments': user_comments,
             'is_editor': True,
         }
     else:
         # Regular user dashboard
-        user_articles = NewsArticle.objects.filter(author=request.user).order_by('-created_at')
-        user_comments = Comment.objects.filter(author=request.user).order_by('-created_at')
-        
         context = {
             'user_profile': user_profile,
             'user_articles': user_articles,
@@ -337,6 +355,7 @@ def create_article(request):
         summary = request.POST.get('summary')
         category_id = request.POST.get('category')
         status = request.POST.get('status', 'draft')
+        featured_image = request.FILES.get('featured_image')
         
         if title and content and category_id:
             category = Category.objects.get(id=category_id)
@@ -348,6 +367,18 @@ def create_article(request):
                 category=category,
                 status=status
             )
+            
+            # Handle featured image upload
+            if featured_image:
+                # Validate file type
+                allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
+                if featured_image.content_type in allowed_types:
+                    article.featured_image = featured_image
+                    article.save()
+                else:
+                    messages.error(request, 'Please upload a valid image file (JPG, PNG, or GIF).')
+                    return redirect('create_article')
+            
             messages.success(request, 'Article created successfully!')
             return redirect('article_detail', article_id=article.id)
         else:
@@ -370,6 +401,18 @@ def edit_article(request, article_id):
         article.summary = request.POST.get('summary')
         article.category_id = request.POST.get('category')
         article.status = request.POST.get('status', 'draft')
+        
+        # Handle featured image upload
+        featured_image = request.FILES.get('featured_image')
+        if featured_image:
+            # Validate file type
+            allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
+            if featured_image.content_type in allowed_types:
+                article.featured_image = featured_image
+            else:
+                messages.error(request, 'Please upload a valid image file (JPG, PNG, or GIF).')
+                return redirect('edit_article', article_id=article.id)
+        
         article.save()
         
         messages.success(request, 'Article updated successfully!')
@@ -381,6 +424,20 @@ def edit_article(request, article_id):
         'categories': categories,
     }
     return render(request, 'edit_article.html', context)
+
+@login_required
+def delete_article(request, article_id):
+    """Delete an article - only the author can delete"""
+    article = get_object_or_404(NewsArticle, id=article_id, author=request.user)
+    
+    if request.method == 'POST':
+        article_title = article.title
+        article.delete()
+        messages.success(request, f'Article "{article_title}" has been deleted successfully!')
+        return redirect('dashboard')
+    
+    # If it's a GET request, show confirmation page
+    return render(request, 'delete_article_confirm.html', {'article': article})
 
 def about(request):
     """About page"""
