@@ -263,12 +263,7 @@ def user_register(request):
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
-            # Create a user profile for the new user
-            UserProfile.objects.create(
-                user=user,
-                is_editor=False,  # Normal users are not editors by default
-                bio=''
-            )
+            # UserProfile is automatically created by the signal
             # Log the user in after registration
             login(request, user)
             messages.success(request, f'Account created successfully! Welcome, {user.first_name}! You can now comment on articles.')
