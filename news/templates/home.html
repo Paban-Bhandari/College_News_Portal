@@ -33,13 +33,13 @@
                         {{ article.summary|default:article.content|truncatewords:15 }}
                     </p>
                     <a href="{% url 'article_detail' article.id %}" class="read-more-btn">
-                        📖 Read More
+                        <i class="fas fa-book-open"></i> Read More
                     </a>
                 </div>
                 <div class="article-stats">
-                    <span>👁️ {{ article.views }} views</span>
-                    <span>💬 {{ article.comment_count }} comments</span>
-                    <span>❤️ {{ article.like_count }} likes</span>
+                    <span><i class="fas fa-eye"></i> {{ article.views }} views</span>
+                    <span><i class="fas fa-comments"></i> {{ article.comment_count }} comments</span>
+                    <span><i class="fas fa-heart"></i> {{ article.like_count }} likes</span>
                 </div>
             </div>
         </div>

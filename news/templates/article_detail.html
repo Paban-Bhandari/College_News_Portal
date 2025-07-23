@@ -10,8 +10,8 @@
         <div class="article-meta">
             <span>By {{ article.author.username }}</span>
             <span>{{ article.published_at|date:"M d, Y" }}</span>
-            <span>👁️ {{ article.views }} views</span>
-            <span>💬 {{ article.comment_count }} comments</span>
+            <span><i class="fas fa-eye"></i> {{ article.views }} views</span>
+            <span><i class="fas fa-comments"></i> {{ article.comment_count }} comments</span>
         </div>
     </div>
 
@@ -102,6 +102,28 @@
                                 Delete
                             </button>
                         </div>
+                        {% elif user.is_authenticated and user == article.author %}
+                        <div class="comment-actions">
+                            <button class="delete-comment-btn" onclick="deleteComment({{ comment.id }})">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M3 6h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                Delete
+                            </button>
+                        </div>
+                        {% elif user.is_authenticated and user.is_superuser %}
+                        <div class="comment-actions">
+                            <button class="delete-comment-btn" onclick="deleteComment({{ comment.id }})">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M3 6h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                Delete
+                            </button>
+                        </div>
                         {% endif %}
                     </div>
                     <div class="comment-content" id="comment-content-{{ comment.id }}">
@@ -124,6 +146,27 @@
         </div>
     </div>
 </div>
+
+{% if related_articles %}
+<div class="related-articles-section">
+    <h3>Related Articles</h3>
+    <div class="related-articles-grid">
+        {% for related in related_articles %}
+        <div class="related-article-card">
+            <a href="{% url 'article_detail' related.id %}">
+                {% if related.featured_image %}
+                <img src="{{ related.featured_image.url }}" alt="{{ related.title }}" class="related-article-image">
+                {% endif %}
+                <div class="related-article-info">
+                    <h4>{{ related.title }}</h4>
+                    <p class="related-article-meta">By {{ related.author.username }} | {{ related.published_at|date:"M d, Y" }}</p>
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
 
 <style>
     .article-detail {
@@ -691,6 +734,51 @@
             width: 100%;
         }
     }
+
+.related-articles-section {
+    margin: 3rem 0 0 0;
+    padding: 2rem;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+.related-articles-section h3 {
+    margin-bottom: 1.5rem;
+    color: #333;
+}
+.related-articles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+}
+.related-article-card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    overflow: hidden;
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+.related-article-card:hover {
+    box-shadow: 0 6px 20px rgba(0,123,255,0.15);
+    transform: translateY(-3px);
+}
+.related-article-image {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    border-bottom: 1px solid #eee;
+}
+.related-article-info {
+    padding: 1rem;
+}
+.related-article-info h4 {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    color: #007bff;
+}
+.related-article-meta {
+    color: #888;
+    font-size: 0.9rem;
+}
 </style>
 
 <!-- Success Notification -->
@@ -821,29 +909,46 @@ function submitComment(event, articleId) {
             const newComment = document.createElement('div');
             newComment.className = 'comment';
             newComment.setAttribute('data-comment-id', data.comment.id);
+            
+            // Build comment actions based on permissions
+            let commentActions = '';
+            if (data.is_comment_author) {
+                commentActions = `
+                    <button class="edit-comment-btn" data-comment-id="${data.comment.id}" data-comment-content="${data.comment.content.replace(/\"/g, '&quot;')}" onclick="editComment(${data.comment.id})">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Edit
+                    </button>
+                    <button class="delete-comment-btn" onclick="deleteComment(${data.comment.id})">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 6h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Delete
+                    </button>
+                `;
+            } else if (data.is_article_author) {
+                commentActions = `
+                    <button class="delete-comment-btn" onclick="deleteComment(${data.comment.id})">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 6h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Delete
+                    </button>
+                `;
+            }
             newComment.innerHTML = `
                 <div class="comment-header">
                     <div class="comment-author-info">
                         <strong>${data.comment.author}</strong>
                         <span class="comment-date">${data.comment.created_at}</span>
                     </div>
-                    <div class="comment-actions">
-                        <button class="edit-comment-btn" data-comment-id="${data.comment.id}" data-comment-content="${data.comment.content.replace(/"/g, '&quot;')}" onclick="editComment(${data.comment.id})">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            Edit
-                        </button>
-                        <button class="delete-comment-btn" onclick="deleteComment(${data.comment.id})">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M3 6h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            Delete
-                        </button>
-                    </div>
+                    ${commentActions ? `<div class="comment-actions">${commentActions}</div>` : ''}
                 </div>
                 <div class="comment-content" id="comment-content-${data.comment.id}">
                     ${data.comment.content.replace(/\n/g, '<br>')}

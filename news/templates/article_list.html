@@ -17,6 +17,12 @@
                     </option>
                     {% endfor %}
                 </select>
+                <select name="author">
+                    <option value="">All Authors</option>
+                    {% for author in authors %}
+                    <option value="{{ author.id }}" {% if selected_author == author.id|stringformat:"s" %}selected{% endif %}>{{ author.get_full_name|default:author.username }}</option>
+                    {% endfor %}
+                </select>
                 <button type="submit" class="btn btn-primary">Search</button>
             </form>
         </div>
@@ -42,13 +48,13 @@
                         {{ article.summary|default:article.content|truncatewords:20 }}
                     </p>
                     <a href="{% url 'article_detail' article.id %}" class="read-more-btn">
-                        📖 Read More
+                        <i class="fas fa-book-open"></i> Read More
                     </a>
                 </div>
                 <div class="article-stats">
-                    <span>👁️ {{ article.views }} views</span>
-                    <span>💬 {{ article.comment_count }} comments</span>
-                    <span>❤️ {{ article.like_count }} likes</span>
+                    <span><i class="fas fa-eye"></i> {{ article.views }} views</span>
+                    <span><i class="fas fa-comments"></i> {{ article.comment_count }} comments</span>
+                    <span><i class="fas fa-heart"></i> {{ article.like_count }} likes</span>
                 </div>
             </div>
         </div>
@@ -61,7 +67,24 @@
         <a href="{% url 'article_list' %}" class="btn btn-outline">View All Articles</a>
     </div>
     {% endif %}
-</div>
+
+    {% if is_paginated %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+            <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if selected_category %}category={{ selected_category }}&{% endif %}{% if selected_author %}author={{ selected_author }}&{% endif %}page={{ page_obj.previous_page_number }}" class="page-link">&laquo; Previous</a>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+                <span class="current-page">{{ num }}</span>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if selected_category %}category={{ selected_category }}&{% endif %}{% if selected_author %}author={{ selected_author }}&{% endif %}page={{ num }}" class="page-link">{{ num }}</a>
+            {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+            <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if selected_category %}category={{ selected_category }}&{% endif %}{% if selected_author %}author={{ selected_author }}&{% endif %}page={{ page_obj.next_page_number }}" class="page-link">Next &raquo;</a>
+        {% endif %}
+    </div>
+    {% endif %}
 
 <style>
     .articles-container {
@@ -264,5 +287,32 @@
     }
 </style>
 
+<style>
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 2rem 0;
+}
+.page-link, .current-page {
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    background: #f1f1f1;
+    color: #333;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+.page-link:hover {
+    background: #007bff;
+    color: #fff;
+}
+.current-page {
+    background: #007bff;
+    color: #fff;
+    font-weight: bold;
+}
+</style>
 
 {% endblock %} 
