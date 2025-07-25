@@ -35,18 +35,6 @@
             </div>
 
             <div class="form-group">
-                <label for="featured_image">Featured Image (Optional)</label>
-                {% if article.featured_image %}
-                <div class="current-image">
-                    <p><strong>Current Image:</strong></p>
-                    <img src="{{ article.featured_image.url }}" alt="Current featured image" style="max-width: 200px; max-height: 150px; border-radius: 5px; margin: 0.5rem 0;">
-                </div>
-                {% endif %}
-                <input type="file" id="featured_image" name="featured_image" accept="image/*">
-                <small class="form-help">Upload a new image to replace the current one. Supported formats: JPG, PNG, GIF</small>
-            </div>
-
-            <div class="form-group">
                 <label for="content">Article Content *</label>
                 <textarea id="content" name="content" required>{{ article.content }}</textarea>
             </div>

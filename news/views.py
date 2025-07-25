@@ -380,7 +380,6 @@ def create_article(request):
         summary = request.POST.get('summary')
         category_id = request.POST.get('category')
         status = request.POST.get('status', 'draft')
-        featured_image = request.FILES.get('featured_image')
         
         if title and content and category_id:
             category = Category.objects.get(id=category_id)
@@ -392,17 +391,6 @@ def create_article(request):
                 category=category,
                 status=status
             )
-            
-            # Handle featured image upload
-            if featured_image:
-                # Validate file type
-                allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
-                if featured_image.content_type in allowed_types:
-                    article.featured_image = featured_image
-                    article.save()
-                else:
-                    messages.error(request, 'Please upload a valid image file (JPG, PNG, or GIF).')
-                    return redirect('create_article')
             
             messages.success(request, 'Article created successfully!')
             return redirect('article_detail', article_id=article.id)
@@ -431,16 +419,6 @@ def edit_article(request, article_id):
         article.summary = request.POST.get('summary')
         article.category_id = request.POST.get('category')
         article.status = posted_status
-        # Handle featured image upload
-        featured_image = request.FILES.get('featured_image')
-        if featured_image:
-            # Validate file type
-            allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
-            if featured_image.content_type in allowed_types:
-                article.featured_image = featured_image
-            else:
-                messages.error(request, 'Please upload a valid image file (JPG, PNG, or GIF).')
-                return redirect('edit_article', article_id=article.id)
         article.save()
         logger.debug(f"Article {article.id} status after save: {article.status}")
         messages.success(request, 'Article updated successfully!')

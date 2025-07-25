@@ -20,9 +20,6 @@
     <div class="articles-grid">
         {% for article in featured_articles %}
         <div class="article-card">
-            {% if article.featured_image %}
-            <img src="{{ article.featured_image.url }}" alt="{{ article.title }}">
-            {% endif %}
             <div class="article-content">
                 <h3><a href="{% url 'article_detail' article.id %}">{{ article.title }}</a></h3>
                 <p class="article-meta">

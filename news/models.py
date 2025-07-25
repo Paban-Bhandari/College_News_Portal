@@ -28,7 +28,6 @@ class NewsArticle(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='articles')
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='articles')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
-    featured_image = models.ImageField(upload_to='news_images/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     published_at = models.DateTimeField(blank=True, null=True)
@@ -56,7 +55,6 @@ class NewsArticle(models.Model):
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     bio = models.TextField(max_length=500, blank=True)
-    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
     is_editor = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     

@@ -15,12 +15,6 @@
         </div>
     </div>
 
-    {% if article.featured_image %}
-    <div class="article-image">
-        <img src="{{ article.featured_image.url }}" alt="{{ article.title }}">
-    </div>
-    {% endif %}
-
     <div class="article-content">
         {% if article.summary %}
         <div class="article-summary">
@@ -154,9 +148,6 @@
         {% for related in related_articles %}
         <div class="related-article-card">
             <a href="{% url 'article_detail' related.id %}">
-                {% if related.featured_image %}
-                <img src="{{ related.featured_image.url }}" alt="{{ related.title }}" class="related-article-image">
-                {% endif %}
                 <div class="related-article-info">
                     <h4>{{ related.title }}</h4>
                     <p class="related-article-meta">By {{ related.author.username }} | {{ related.published_at|date:"M d, Y" }}</p>

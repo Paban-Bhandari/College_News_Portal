@@ -18,7 +18,7 @@ class NewsArticleAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Content', {
-            'fields': ('title', 'content', 'summary', 'featured_image')
+            'fields': ('title', 'content', 'summary')
         }),
         ('Metadata', {
             'fields': ('author', 'category', 'status')
